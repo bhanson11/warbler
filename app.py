@@ -219,7 +219,6 @@ def profile():
         flash("Access unauthorized.", "danger")
         return redirect("/")
     
-    user=g.user
     
 
 @app.route('/users/delete', methods=["POST"])
