@@ -234,6 +234,7 @@ def profile():
             return redirect(f"/users/{user.id}")
 
         flash("Wrong password, please try again.", 'danger')
+        return redirect("/")
 
     return render_template('users/edit.html', form=form, user_id=user.id)
 
@@ -252,7 +253,29 @@ def delete_user():
 
     return redirect("/signup")
 
+@app.route('/users/add_like/<int:message_id>', methods=["POST"])
+def add_like(message_id):
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    
+    liked_message = Message.query.get_or_404(message_id)
 
+    #prevent users from liking their OWN messages
+    if liked_message.user_id == g.user.id:
+        flash("You can't like your own message!")
+        return redirect("/") 
+
+    user_likes = g.user.likes
+        
+    if liked_message in user_likes:
+        g.user.likes = [like for like in user_likes if like != liked_message]
+    else:
+        g.user.likes.append(liked_message)
+
+    db.session.commit()
+
+    return redirect("/")
 ##############################################################################
 # Messages routes:
 
@@ -315,8 +338,11 @@ def homepage():
     """
 
     if g.user:
+        following_ids = [u.id for u in g.user.following] + [g.user.id]
+
         messages = (Message
                     .query
+                    .filter(Message.user_id.in_(following_ids))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
