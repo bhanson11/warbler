@@ -263,15 +263,17 @@ def add_like(message_id):
 
     #prevent users from liking their OWN messages
     if liked_message.user_id == g.user.id:
-        flash("You can't like your own message!")
+        flash("You can't like your own message!", "danger")
         return redirect("/") 
 
     user_likes = g.user.likes
         
     if liked_message in user_likes:
-        g.user.likes = [like for like in user_likes if like != liked_message]
+        g.user.likes.remove(liked_message) 
+        flash("Message unliked", "info")
     else:
         g.user.likes.append(liked_message)
+        flash("Message liked", "success")
 
     db.session.commit()
 
