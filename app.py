@@ -348,8 +348,14 @@ def homepage():
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
+        
+        # Debug output
+        print("User likes:", [msg.id for msg in g.user.likes])
+        print("Messages:", [msg.id for msg in messages])
 
-        return render_template('home.html', messages=messages)
+        likes = [msg.id for msg in g.user.likes]
+
+        return render_template('home.html', messages=messages, likes=likes)
 
     else:
         return render_template('home-anon.html')
