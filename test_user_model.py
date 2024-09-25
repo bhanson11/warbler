@@ -7,6 +7,7 @@
 
 import os
 from unittest import TestCase
+from sqlalchemy import exc
 
 from models import db, User, Message, Follows
 
@@ -63,7 +64,7 @@ class UserModelTestCase(TestCase):
         return reset
 
     def test_user_model(self):
-        """Does basic model work?"""
+        """Does basic model work? Test repr"""
 
         u = User(
             email="test@test.com",
@@ -83,17 +84,56 @@ class UserModelTestCase(TestCase):
     def test_user_follows(self):
         """testing following functionality"""
 
-        # if test u1 follows u2 is that successful?
+        # Does is_following successfully detect when user1 is following user2?
+        self.u1.following.append(self.u2)
+        db.session.commit()
+        # if u1 follows u2 does it show that u1 is following u2?
+        self.assertTrue(self.u1.is_following(self.u2))
+        
+
+    def test_user_is_following(self):
+        # if u1 is not following u2 is that successfully detected or vice versa?
+        self.u1.following.append(self.u2)
+        db.session.commit()
+        # does u2 show u1 as a follower correctly?
+        self.assertTrue(self.u1.is_following(self.u2))
+        self.assertFalse(self.u2.is_following(self.u1))
+        
+    def test_user_is_followed_by(self):
         self.u1.following.append(self.u2)
         db.session.commit()
 
-        # if u1 follows u2 does it show that u1 is following u2?
-        
+        self.assertTrue(self.u2.is_folowed_by(self.u1))
+        self.assertFalse(self.u1.is_followed_by(self.u2))
 
-        # if u1 is not following u2 is that successfully detected?
+    ### sign up tests ###
 
-        # does u2 show u1 as a follower correctly?
-        
-        # does u2 show u1 not as a follower correctly? 
-        
-        # 
+    def test_valid_signup(self):
+        test_u = User.signup("testnewuser", "testingnewuser@testy.com", "password", None)
+        test_u.id = 11111
+        db.session.commit()
+
+        test_u = User.query.get(test_u.id)
+        self.assertIsNotNone(test_u.id)
+        self.assertEqual(test_u.username, "testnewuser")
+        self.assertEqual(test_u.email, "testingnewuser@testy.com")
+    
+    def test_invalid_username_signup(self):
+        invalidu = User.signup(None, "testiuser@test.com", "password", None)
+        invalidu.id = 5678910
+        with self.assertRaises(exc.IntegrityError) as context:
+            db.session.commit()
+
+    def test_invalid_email_signup(self):
+        invalide = User.signup("testemail", None, "password", None)
+        invalide.id = 1235773
+        with self.assertRaises(exc.IntegrityError) as context:
+            db.session.commit()
+
+    def test_invalid_password_signup(self):
+        with self.assertRaises(ValueError) as context:
+            User.signup("testpass", "password@email.com", "", None)
+
+        with self.assertRaises(ValueError) as context: 
+            User.signup("testpass", "password@email.com", None, None)
+
